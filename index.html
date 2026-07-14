@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthy cùng MinhDang - Tính Calories & Dinh dưỡng thực phẩm</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#16a34a; --green-d:#15803d; --lime:#84cc16;
+  }
+  *{ font-family:'Be Vietnam Pro',system-ui,sans-serif; }
+  body{ background:#f3fbf1; color:#1f2937; overflow-x:hidden; }
+  .blob{ position:fixed; border-radius:9999px; filter:blur(60px); opacity:.45; z-index:0; pointer-events:none; }
+  .reveal{ opacity:0; transform:translateY(18px); animation:rise .6s cubic-bezier(.2,.7,.3,1) forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  @keyframes float{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-14px) } }
+  .floaty{ animation:float 6s ease-in-out infinite; }
+  @keyframes pop{ 0%{ transform:scale(.9); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+  .pop{ animation:pop .35s ease forwards; }
+  .grad-text{ background:linear-gradient(90deg,#16a34a,#65a30d); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background:#bbf7d0; border-radius:9999px; }
+  .bar-fill{ transition:width 1s cubic-bezier(.2,.7,.3,1); }
+  input[type=number]::-webkit-inner-spin-button{ opacity:.4; }
+  .seg input:checked + label{ background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; box-shadow:0 8px 20px -6px rgba(22,163,74,.6); }
+  .chip{ transition:all .2s; }
+  .chip:hover{ transform:translateY(-3px); box-shadow:0 14px 28px -12px rgba(22,163,74,.5); }
+  .fade-step{ animation:rise .45s ease forwards; }
+  .ring-shadow:focus{ box-shadow:0 0 0 4px rgba(34,197,94,.18); border-color:#22c55e !important; }
+</style>
+</head>
+<body class="min-h-screen relative">
+
+<!-- decorative background blobs -->
+<div class="blob" style="width:380px;height:380px;background:#bbf7d0;top:-80px;left:-90px;"></div>
+<div class="blob" style="width:300px;height:300px;background:#fef08a;top:40%;right:-80px;"></div>
+<div class="blob" style="width:340px;height:340px;background:#a7f3d0;bottom:-100px;left:30%;"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="relative z-10 px-5 pt-6 max-w-6xl mx-auto">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-400 to-lime-500 flex items-center justify-center text-2xl shadow-lg shadow-green-300/50 floaty">🌿</div>
+      <div>
+        <h1 class="font-extrabold text-xl sm:text-2xl leading-tight grad-text">Healthy cùng MinhDang</h1>
+        <p class="text-xs text-gray-500 font-medium">Kiểm tra Calories & Dinh dưỡng thực phẩm</p>
+      </div>
+    </div>
+    <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1.5 rounded-full">🥗 Sống khỏe mỗi ngày</span>
+  </div>
+
+  <!-- progress steps -->
+  <div id="progress" class="mt-6 flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2 flex-1">
+      <div data-dot="1" class="step-dot shrink-0 w-9 h-9 rounded-full bg-green-600 text-white font-bold flex items-center justify-center text-sm shadow-md">1</div>
+      <div class="hidden sm:block text-xs font-semibold text-green-700">Thông tin cá nhân</div>
+    </div>
+    <div class="h-1 flex-1 rounded-full bg-green-100 overflow-hidden"><div id="bar1" class="h-full bg-green-400 transition-all duration-500" style="width:0%"></div></div>
+    <div class="flex items-center gap-2 flex-1 justify-center">
+      <div data-dot="2" class="step-dot shrink-0 w-9 h-9 rounded-full bg-green-100 text-green-600 font-bold flex items-center justify-center text-sm">2</div>
+      <div class="hidden sm:block text-xs font-semibold text-gray-400">Chọn thực phẩm</div>
+    </div>
+    <div class="h-1 flex-1 rounded-full bg-green-100 overflow-hidden"><div id="bar2" class="h-full bg-green-400 transition-all duration-500" style="width:0%"></div></div>
+    <div class="flex items-center gap-2 flex-1 justify-end">
+      <div data-dot="3" class="step-dot shrink-0 w-9 h-9 rounded-full bg-green-100 text-green-600 font-bold flex items-center justify-center text-sm">3</div>
+      <div class="hidden sm:block text-xs font-semibold text-gray-400">Kết quả & Lời khuyên</div>
+    </div>
+  </div>
+</header>
+
+<main class="relative z-10 max-w-6xl mx-auto px-5 py-8">
+
+  <!-- =================== STEP 1 : THÔNG TIN CÁ NHÂN =================== -->
+  <section id="step1" class="fade-step">
+    <div class="grid lg:grid-cols-2 gap-6 items-center">
+      <!-- hero text -->
+      <div class="reveal">
+        <span class="inline-block text-xs font-bold tracking-wide text-green-700 bg-green-100 px-3 py-1 rounded-full mb-4">BƯỚC 1 / 3</span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight mb-3">Hãy cho <span class="grad-text">MinhDang</span> biết về bạn 🌱</h2>
+        <p class="text-gray-600 mb-6 leading-relaxed">Nhập giới tính, chiều cao và cân nặng để tính toán lượng <b>calories cần thiết mỗi ngày</b> (BMR & TDEE) cùng chỉ số BMI và nhu cầu nước — nền tảng để tư vấn dinh dưỡng chính xác cho bạn.</p>
+        <ul class="space-y-3 text-sm">
+          <li class="flex items-start gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-green-100 text-green-700 flex items-center justify-center">✓</span><span>Tính BMR theo công thức <b>Mifflin-St Jeor</b> (chuẩn y khoa).</span></li>
+          <li class="flex items-start gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-green-100 text-green-700 flex items-center justify-center">✓</span><span>Ước lượng năng lượng tiêu hao TDEE theo mức vận động.</span></li>
+          <li class="flex items-start gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-green-100 text-green-700 flex items-center justify-center">✓</span><span>Đề xuất Protein – Tinh bột – Chất béo phù hợp vóc dáng.</span></li>
+        </ul>
+      </div>
+
+      <!-- form card -->
+      <div class="reveal bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-green-200/40 border border-green-100" style="animation-delay:.1s">
+        <div class="space-y-5">
+          <!-- gender -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Giới tính</label>
+            <div class="seg grid grid-cols-2 gap-3">
+              <input type="radio" name="gender" id="g-male" value="male" class="hidden peer/m" checked>
+              <label for="g-male" class="cursor-pointer text-center py-3 rounded-2xl border-2 border-green-100 font-semibold text-gray-600 text-sm transition">♂️ Nam</label>
+              <input type="radio" name="gender" id="g-female" value="female" class="hidden peer/f">
+              <label for="g-female" class="cursor-pointer text-center py-3 rounded-2xl border-2 border-green-100 font-semibold text-gray-600 text-sm transition">♀️ Nữ</label>
+            </div>
+          </div>
+
+          <!-- age height weight -->
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tuổi</label>
+              <input id="age" type="number" value="25" min="5" max="100" class="w-full px-3 py-3 rounded-2xl border-2 border-green-100 font-semibold text-center ring-shadow outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5">Chiều cao (cm)</label>
+              <input id="height" type="number" value="170" min="80" max="230" class="w-full px-3 py-3 rounded-2xl border-2 border-green-100 font-semibold text-center ring-shadow outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1.5">Cân nặng (kg)</label>
+              <input id="weight" type="number" value="65" min="20" max="250" class="w-full px-3 py-3 rounded-2xl border-2 border-green-100 font-semibold text-center ring-shadow outline-none">
+            </div>
+          </div>
+
+          <!-- activity -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Mức độ vận động</label>
+            <select id="activity" class="w-full px-4 py-3 rounded-2xl border-2 border-green-100 font-medium text-gray-700 ring-shadow outline-none bg-white">
+              <option value="1.2">🪑 Ít vận động (làm việc văn phòng, ngồi nhiều)</option>
+              <option value="1.375">🚶 Vận động nhẹ (1–3 ngày/tuần)</option>
+              <option value="1.55" selected>🏃 Vận động vừa (3–5 ngày/tuần)</option>
+              <option value="1.725">💪 Vận động nhiều (6–7 ngày/tuần)</option>
+              <option value="1.9">🔥 Vận động rất nhiều (vận động viên)</option>
+            </select>
+          </div>
+
+          <!-- goal -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Mục tiêu</label>
+            <div class="seg grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+              <input type="radio" name="goal" id="goal-l" value="lose" class="hidden"><label for="goal-l" class="cursor-pointer py-2.5 rounded-xl border-2 border-green-100 text-gray-600">Giảm cân</label>
+              <input type="radio" name="goal" id="goal-k" value="keep" class="hidden" checked><label for="goal-k" class="cursor-pointer py-2.5 rounded-xl border-2 border-green-100 text-gray-600">Giữ cân</label>
+              <input type="radio" name="goal" id="goal-g" value="gain" class="hidden"><label for="goal-g" class="cursor-pointer py-2.5 rounded-xl border-2 border-green-100 text-gray-600">Tăng cơ</label>
+            </div>
+          </div>
+
+          <button onclick="goStep2()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-lime-500 text-white font-bold text-lg shadow-lg shadow-green-300/50 hover:shadow-xl hover:-translate-y-0.5 transition active:scale-95">
+            Tính lượng calories cần thiết →
+          </button>
+          <p id="err1" class="hidden text-center text-sm text-red-500 font-medium"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== STEP 2 : CHỌN THỰC PHẨM =================== -->
+  <section id="step2" class="hidden">
+    <!-- calorie needs summary -->
+    <div id="needs" class="mb-8"></div>
+
+    <div class="bg-white/80 backdrop-blur rounded-3xl p-5 sm:p-7 shadow-xl shadow-green-200/40 border border-green-100">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <span class="inline-block text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full mb-2">BƯỚC 2 / 3</span>
+          <h2 class="text-2xl font-extrabold">Chọn thực phẩm cần kiểm tra dinh dưỡng 🍽️</h2>
+        </div>
+        <input id="search" oninput="renderFoods()" type="text" placeholder="🔍 Tìm thực phẩm (vd: cá hồi, chuối...)" class="flex-1 min-w-[200px] px-4 py-3 rounded-2xl border-2 border-green-100 ring-shadow outline-none bg-white">
+      </div>
+
+      <!-- category filter -->
+      <div id="filters" class="flex flex-wrap gap-2 mb-5"></div>
+
+      <!-- food grid -->
+      <div id="foodGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+
+      <!-- cart -->
+      <div class="mt-7 border-t-2 border-dashed border-green-100 pt-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-extrabold text-lg flex items-center gap-2">🧺 Danh sách thực phẩm đã chọn <span id="cartCount" class="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">0</span></h3>
+          <button onclick="clearCart()" class="text-xs font-semibold text-gray-400 hover:text-red-500 transition">Xóa tất cả</button>
+        </div>
+        <div id="cart" class="space-y-2"></div>
+
+        <div class="flex flex-col sm:flex-row gap-3 mt-5">
+          <button onclick="goStep(1)" class="sm:flex-none px-5 py-3.5 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition">← Sửa thông tin</button>
+          <button id="analyzeBtn" onclick="analyze()" class="flex-1 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-lime-500 text-white font-bold text-lg shadow-lg shadow-green-300/50 hover:-translate-y-0.5 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0">
+            Phân tích dinh dưỡng & lời khuyên →
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== STEP 3 : KẾT QUẢ =================== -->
+  <section id="step3" class="hidden">
+    <div id="results"></div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="goStep(2)" class="px-6 py-3.5 rounded-2xl bg-white border-2 border-green-100 text-green-700 font-bold hover:bg-green-50 transition">← Chọn thêm thực phẩm</button>
+      <button onclick="goStep(1)" class="px-6 py-3.5 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition">🏠 Bắt đầu lại</button>
+    </div>
+  </section>
+</main>
+
+<footer class="relative z-10 text-center text-xs text-gray-400 py-8 px-5">
+  <p>🌿 <b>Healthy cùng MinhDang</b> — Dữ liệu dinh dưỡng tham khảo theo USDA (trên 100g). Kết quả mang tính ước lượng, không thay thế tư vấn chuyên gia y tế.</p>
+</footer>
+
+<script>
+/* =========================================================
+   CƠ SỞ DỮ LIỆU THỰC PHẨM  (giá trị trên 100g)
+   ========================================================= */
+const FOODS = [
+  // ---- Tinh bột ----
+  {id:'rice', name:'Cơm trắng', emoji:'🍚', cat:'Tinh bột', calories:130, protein:2.7, carbs:28.2, fat:0.3, fiber:0.4, sugar:0.1, satFat:0.1, sodium:1, cholesterol:0, calcium:10, iron:0.2, potassium:35, magnesium:12, phosphorus:43, zinc:0.5, vitA:0, vitC:0, vitD:0, vitE:0.04, vitK:0, vitB1:0.02, vitB2:0.01, vitB3:0.4, vitB6:0.09, vitB9:3, vitB12:0},
+  {id:'brownrice', name:'Cơm gạo lứt', emoji:'🌾', cat:'Tinh bột', calories:123, protein:2.7, carbs:25.6, fat:1.0, fiber:1.6, sugar:0.2, satFat:0.2, sodium:5, cholesterol:0, calcium:10, iron:0.5, potassium:86, magnesium:39, phosphorus:83, zinc:0.6, vitA:0, vitC:0, vitD:0, vitE:0.1, vitK:0.2, vitB1:0.18, vitB2:0.02, vitB3:1.2, vitB6:0.15, vitB9:4, vitB12:0},
+  {id:'bread', name:'Bánh mì trắng', emoji:'🍞', cat:'Tinh bột', calories:265, protein:9.0, carbs:49.0, fat:3.2, fiber:2.7, sugar:5.0, satFat:0.7, sodium:491, cholesterol:0, calcium:151, iron:3.6, potassium:115, magnesium:25, phosphorus:100, zinc:0.8, vitA:0, vitC:0, vitD:0, vitE:0.2, vitK:2, vitB1:0.4, vitB2:0.2, vitB3:4.8, vitB6:0.1, vitB9:85, vitB12:0},
+  {id:'oats', name:'Yến mạch', emoji:'🥣', cat:'Tinh bột', calories:389, protein:16.9, carbs:66.0, fat:6.9, fiber:10.6, sugar:0.0, satFat:1.2, sodium:2, cholesterol:0, calcium:54, iron:4.7, potassium:429, magnesium:177, phosphorus:523, zinc:4.0, vitA:0, vitC:0, vitD:0, vitE:0.4, vitK:0.2, vitB1:0.8, vitB2:0.1, vitB3:0.9, vitB6:0.1, vitB9:32, vitB12:0},
+  {id:'potato', name:'Khoai tây', emoji:'🥔', cat:'Tinh bột', calories:87, protein:1.9, carbs:20.0, fat:0.1, fiber:1.8, sugar:0.8, satFat:0.0, sodium:5, cholesterol:0, calcium:10, iron:0.3, potassium:421, magnesium:22, phosphorus:54, zinc:0.3, vitA:0, vitC:8, vitD:0, vitE:0.01, vitK:0.3, vitB1:0.1, vitB2:0.02, vitB3:1.2, vitB6:0.3, vitB9:11, vitB12:0},
+  {id:'pasta', name:'Mì ống (luộc)', emoji:'🍝', cat:'Tinh bột', calories:158, protein:5.8, carbs:31.0, fat:0.9, fiber:1.8, sugar:0.6, satFat:0.2, sodium:1, cholesterol:0, calcium:7, iron:0.5, potassium:44, magnesium:18, phosphorus:77, zinc:0.5, vitA:0, vitC:0, vitD:0, vitE:0.1, vitK:0, vitB1:0.04, vitB2:0.02, vitB3:0.8, vitB6:0.04, vitB9:6, vitB12:0},
+  // ---- Đạm ----
+  {id:'chicken', name:'Ức gà', emoji:'🍗', cat:'Đạm', calories:165, protein:31.0, carbs:0.0, fat:3.6, fiber:0.0, sugar:0.0, satFat:1.0, sodium:74, cholesterol:85, calcium:15, iron:1.0, potassium:256, magnesium:28, phosphorus:210, zinc:1.0, vitA:9, vitC:0, vitD:0.1, vitE:0.3, vitK:0, vitB1:0.07, vitB2:0.12, vitB3:13.7, vitB6:0.6, vitB9:4, vitB12:0.3},
+  {id:'beef', name:'Thịt bò', emoji:'🥩', cat:'Đạm', calories:250, protein:26.0, carbs:0.0, fat:15.0, fiber:0.0, sugar:0.0, satFat:6.0, sodium:72, cholesterol:90, calcium:18, iron:2.6, potassium:318, magnesium:21, phosphorus:200, zinc:6.0, vitA:0, vitC:0, vitD:0.3, vitE:0.4, vitK:0, vitB1:0.06, vitB2:0.2, vitB3:6.0, vitB6:0.5, vitB9:9, vitB12:2.5},
+  {id:'pork', name:'Thịt heo', emoji:'🥓', cat:'Đạm', calories:242, protein:27.0, carbs:0.0, fat:14.0, fiber:0.0, sugar:0.0, satFat:5.0, sodium:62, cholesterol:80, calcium:19, iron:0.9, potassium:423, magnesium:24, phosphorus:200, zinc:2.0, vitA:2, vitC:0, vitD:0.6, vitE:0.3, vitK:0, vitB1:0.85, vitB2:0.3, vitB3:6.0, vitB6:0.5, vitB9:5, vitB12:0.7},
+  {id:'salmon', name:'Cá hồi', emoji:'🐟', cat:'Đạm', calories:208, protein:20.0, carbs:0.0, fat:13.0, fiber:0.0, sugar:0.0, satFat:3.0, sodium:59, cholesterol:55, calcium:9, iron:0.3, potassium:363, magnesium:30, phosphorus:250, zinc:0.4, vitA:12, vitC:0, vitD:11, vitE:1.9, vitK:0.1, vitB1:0.08, vitB2:0.05, vitB3:7.0, vitB6:0.6, vitB9:25, vitB12:3.2},
+  {id:'shrimp', name:'Tôm', emoji:'🦐', cat:'Đạm', calories:99, protein:24.0, carbs:0.2, fat:0.3, fiber:0.0, sugar:0.0, satFat:0.1, sodium:111, cholesterol:189, calcium:70, iron:0.5, potassium:259, magnesium:35, phosphorus:200, zinc:1.3, vitA:54, vitC:0, vitD:0, vitE:0.5, vitK:0, vitB1:0.03, vitB2:0.03, vitB3:2.0, vitB6:0.1, vitB9:4, vitB12:1.1},
+  {id:'egg', name:'Trứng gà', emoji:'🥚', cat:'Đạm', calories:155, protein:13.0, carbs:1.1, fat:11.0, fiber:0.0, sugar:1.1, satFat:3.3, sodium:124, cholesterol:373, calcium:50, iron:1.2, potassium:126, magnesium:10, phosphorus:172, zinc:1.3, vitA:160, vitC:0, vitD:2.0, vitE:1.0, vitK:0.3, vitB1:0.04, vitB2:0.27, vitB3:0.08, vitB6:0.12, vitB9:44, vitB12:0.9},
+  {id:'tofu', name:'Đậu hũ', emoji:'🧈', cat:'Đạm', calories:76, protein:8.0, carbs:1.9, fat:4.8, fiber:0.3, sugar:0.6, satFat:0.7, sodium:7, cholesterol:0, calcium:350, iron:5.4, potassium:121, magnesium:30, phosphorus:97, zinc:0.8, vitA:0, vitC:0.1, vitD:0, vitE:0.01, vitK:2.0, vitB1:0.06, vitB2:0.02, vitB3:0.1, vitB6:0.03, vitB9:15, vitB12:0},
+  {id:'blackbean', name:'Đậu đen (luộc)', emoji:'🫘', cat:'Đạm', calories:132, protein:8.9, carbs:23.7, fat:0.5, fiber:8.7, sugar:0.3, satFat:0.1, sodium:1, cholesterol:0, calcium:27, iron:2.1, potassium:355, magnesium:70, phosphorus:212, zinc:1.1, vitA:0, vitC:0, vitD:0, vitE:0.3, vitK:2.9, vitB1:0.24, vitB2:0.1, vitB3:0.4, vitB6:0.13, vitB9:149, vitB12:0},
+  // ---- Sữa ----
+  {id:'milk', name:'Sữa bò', emoji:'🥛', cat:'Sữa', calories:61, protein:3.2, carbs:4.8, fat:3.3, fiber:0.0, sugar:5.1, satFat:1.9, sodium:43, cholesterol:10, calcium:113, iron:0.0, potassium:132, magnesium:10, phosphorus:92, zinc:0.4, vitA:46, vitC:0, vitD:1.3, vitE:0.07, vitK:0.3, vitB1:0.04, vitB2:0.18, vitB3:0.08, vitB6:0.04, vitB9:5, vitB12:0.4},
+  {id:'yogurt', name:'Sữa chua không đường', emoji:'🍶', cat:'Sữa', calories:59, protein:10.0, carbs:3.6, fat:0.4, fiber:0.0, sugar:3.2, satFat:0.1, sodium:36, cholesterol:5, calcium:110, iron:0.0, potassium:141, magnesium:11, phosphorus:95, zinc:0.5, vitA:0, vitC:0, vitD:0, vitE:0.01, vitK:0.2, vitB1:0.04, vitB2:0.28, vitB3:0.1, vitB6:0.05, vitB9:7, vitB12:0.8},
+  {id:'cheese', name:'Phô mai', emoji:'🧀', cat:'Sữa', calories:403, protein:25.0, carbs:1.3, fat:33.0, fiber:0.0, sugar:0.5, satFat:21.0, sodium:621, cholesterol:105, calcium:721, iron:0.7, potassium:98, magnesium:28, phosphorus:512, zinc:3.1, vitA:265, vitC:0, vitD:0.6, vitE:0.3, vitK:2.4, vitB1:0.03, vitB2:0.4, vitB3:0.1, vitB6:0.07, vitB9:18, vitB12:1.1},
+  // ---- Trái cây ----
+  {id:'banana', name:'Chuối', emoji:'🍌', cat:'Trái cây', calories:89, protein:1.1, carbs:22.8, fat:0.3, fiber:2.6, sugar:12.2, satFat:0.1, sodium:1, cholesterol:0, calcium:5, iron:0.3, potassium:358, magnesium:27, phosphorus:22, zinc:0.2, vitA:3, vitC:8.7, vitD:0, vitE:0.1, vitK:0.5, vitB1:0.03, vitB2:0.07, vitB3:0.7, vitB6:0.37, vitB9:20, vitB12:0},
+  {id:'apple', name:'Táo', emoji:'🍎', cat:'Trái cây', calories:52, protein:0.3, carbs:14.0, fat:0.2, fiber:2.4, sugar:10.4, satFat:0.0, sodium:1, cholesterol:0, calcium:6, iron:0.1, potassium:107, magnesium:5, phosphorus:11, zinc:0.0, vitA:3, vitC:4.6, vitD:0, vitE:0.18, vitK:2.2, vitB1:0.02, vitB2:0.02, vitB3:0.1, vitB6:0.04, vitB9:3, vitB12:0},
+  {id:'orange', name:'Cam', emoji:'🍊', cat:'Trái cây', calories:47, protein:0.9, carbs:12.0, fat:0.1, fiber:2.4, sugar:9.4, satFat:0.0, sodium:0, cholesterol:0, calcium:40, iron:0.1, potassium:181, magnesium:10, phosphorus:14, zinc:0.07, vitA:11, vitC:53.2, vitD:0, vitE:0.18, vitK:0, vitB1:0.09, vitB2:0.04, vitB3:0.3, vitB6:0.06, vitB9:30, vitB12:0},
+  {id:'avocado', name:'Trái bơ', emoji:'🥑', cat:'Trái cây', calories:160, protein:2.0, carbs:8.5, fat:14.7, fiber:6.7, sugar:0.7, satFat:2.1, sodium:7, cholesterol:0, calcium:12, iron:0.6, potassium:485, magnesium:29, phosphorus:52, zinc:0.6, vitA:7, vitC:10, vitD:0, vitE:2.1, vitK:21, vitB1:0.07, vitB2:0.13, vitB3:1.7, vitB6:0.26, vitB9:81, vitB12:0},
+  {id:'strawberry', name:'Dâu tây', emoji:'🍓', cat:'Trái cây', calories:32, protein:0.7, carbs:7.7, fat:0.3, fiber:2.0, sugar:4.9, satFat:0.0, sodium:1, cholesterol:0, calcium:16, iron:0.4, potassium:153, magnesium:13, phosphorus:24, zinc:0.1, vitA:1, vitC:58.8, vitD:0, vitE:0.29, vitK:2.2, vitB1:0.02, vitB2:0.02, vitB3:0.4, vitB6:0.05, vitB9:24, vitB12:0},
+  {id:'watermelon', name:'Dưa hấu', emoji:'🍉', cat:'Trái cây', calories:30, protein:0.6, carbs:7.6, fat:0.2, fiber:0.4, sugar:6.2, satFat:0.0, sodium:1, cholesterol:0, calcium:7, iron:0.2, potassium:112, magnesium:10, phosphorus:11, zinc:0.1, vitA:28, vitC:8.1, vitD:0, vitE:0.05, vitK:0.1, vitB1:0.03, vitB2:0.02, vitB3:0.2, vitB6:0.05, vitB9:3, vitB12:0},
+  // ---- Rau củ ----
+  {id:'broccoli', name:'Bông cải xanh', emoji:'🥦', cat:'Rau củ', calories:34, protein:2.8, carbs:7.0, fat:0.4, fiber:2.6, sugar:1.7, satFat:0.0, sodium:33, cholesterol:0, calcium:47, iron:0.7, potassium:316, magnesium:21, phosphorus:66, zinc:0.4, vitA:31, vitC:89.2, vitD:0, vitE:0.78, vitK:102, vitB1:0.07, vitB2:0.12, vitB3:0.64, vitB6:0.18, vitB9:63, vitB12:0},
+  {id:'carrot', name:'Cà rốt', emoji:'🥕', cat:'Rau củ', calories:41, protein:0.9, carbs:10.0, fat:0.2, fiber:2.8, sugar:4.7, satFat:0.0, sodium:69, cholesterol:0, calcium:33, iron:0.3, potassium:320, magnesium:12, phosphorus:35, zinc:0.2, vitA:835, vitC:5.9, vitD:0, vitE:0.66, vitK:13, vitB1:0.07, vitB2:0.06, vitB3:1.0, vitB6:0.14, vitB9:19, vitB12:0},
+  {id:'tomato', name:'Cà chua', emoji:'🍅', cat:'Rau củ', calories:18, protein:0.9, carbs:3.9, fat:0.2, fiber:1.2, sugar:2.6, satFat:0.0, sodium:5, cholesterol:0, calcium:10, iron:0.3, potassium:237, magnesium:11, phosphorus:24, zinc:0.2, vitA:42, vitC:14, vitD:0, vitE:0.5, vitK:7.9, vitB1:0.04, vitB2:0.02, vitB3:0.6, vitB6:0.08, vitB9:15, vitB12:0},
+  {id:'spinach', name:'Rau chân vịt', emoji:'🥬', cat:'Rau củ', calories:23, protein:2.9, carbs:3.6, fat:0.4, fiber:2.2, sugar:0.4, satFat:0.1, sodium:79, cholesterol:0, calcium:99, iron:2.7, potassium:558, magnesium:79, phosphorus:49, zinc:0.5, vitA:469, vitC:28, vitD:0, vitE:2.0, vitK:482, vitB1:0.08, vitB2:0.19, vitB3:0.7, vitB6:0.2, vitB9:194, vitB12:0},
+  // ---- Hạt/Dầu ----
+  {id:'almond', name:'Hạnh nhân', emoji:'🌰', cat:'Hạt/Dầu', calories:579, protein:21.0, carbs:22.0, fat:50.0, fiber:12.5, sugar:4.4, satFat:3.8, sodium:1, cholesterol:0, calcium:269, iron:3.7, potassium:733, magnesium:270, phosphorus:481, zinc:3.0, vitA:0, vitC:0, vitD:0, vitE:25.6, vitK:0, vitB1:0.2, vitB2:0.6, vitB3:3.4, vitB6:0.1, vitB9:44, vitB12:0},
+];
+
+/* =========================================================
+   THÔNG TIN CHẤT DINH DƯỠNG  (nhãn, đơn vị, nhu cầu DV)
+   ========================================================= */
+const LIMIT = new Set(['calories','satFat','sodium','cholesterol','sugar']);
+const NUTRIENT_GROUPS = [
+  { title:'Năng lượng & Chất đa lượng', icon:'⚡', keys:['calories','protein','carbs','fiber','sugar','fat','satFat'] },
+  { title:'Khoáng chất', icon:'🪨', keys:['sodium','cholesterol','calcium','iron','potassium','magnesium','phosphorus','zinc'] },
+  { title:'Vitamin', icon:'💊', keys:['vitA','vitC','vitD','vitE','vitK','vitB1','vitB2','vitB3','vitB6','vitB9','vitB12'] },
+];
+const CATS = ['Tinh bột','Đạm','Sữa','Trái cây','Rau củ','Hạt/Dầu'];
+const CAT_EMOJI = {'Tinh bột':'🍚','Đạm':'🍗','Sữa':'🥛','Trái cây':'🍎','Rau củ':'🥦','Hạt/Dầu':'🌰'};
+
+/* nhu cầu tham chiếu (Daily Value) – sẽ đc ghi đè một số giá trị theo giới tính & mục tiêu */
+function buildDV(state){
+  return {
+    calories: state.tdee,
+    protein:  Math.round(state.tdee*0.25/4),
+    carbs:    Math.round(state.tdee*0.45/4),
+    fat:      Math.round(state.tdee*0.30/9),
+    fiber:28, sugar:50, satFat:20, sodium:2300, cholesterol:300,
+    calcium:1000, iron:(state.gender==='female'?18:8), potassium:3400, magnesium:400, phosphorus:700,
+    zinc:(state.gender==='male'?11:8),
+    vitA:900, vitC:90, vitD:15, vitE:15, vitK:120, vitB1:1.2, vitB2:1.3, vitB3:16, vitB6:1.3, vitB9:400, vitB12:2.4
+  };
+}
+const NUTRIENT_LABEL = {
+  calories:['Calories','kcal','Năng lượng cần thiết cho mọi hoạt động của cơ thể.'],
+  protein:['Protein','g','Xây dựng & sửa chữa cơ bắp, enzyme, hormone.'],
+  carbs:['Tinh bột','g','Nguồn năng lượng chính cho não và cơ bắp.'],
+  fiber:['Chất xơ','g','Tốt cho tiêu hóa, kiểm soát đường huyết & cholesterol.'],
+  sugar:['Đường','g','Nên hạn chế đường tự do để tránh bệnh chuyển hóa.'],
+  fat:['Tổng chất béo','g','Dự trữ năng lượng, hấp thu vitamin tan trong mỡ.'],
+  satFat:['Chất béo bão hòa','g','Nên hạn chế – tăng LDL cholesterol xấu.'],
+  sodium:['Natri','mg','Cần thiết nhưng thừa gây tăng huyết áp.'],
+  cholesterol:['Cholesterol','mg','Đóng góp cholesterol máu, nên kiểm soát.'],
+  calcium:['Canxi','mg','Răng & xương chắc khỏe, co cơ.'],
+  iron:['Sắt','mg','Tạo hồng cầu mang oxy. Nữ cần nhiều hơn.'],
+  potassium:['Kali','mg','Hỗ trợ tim, huyết áp & co cơ.'],
+  magnesium:['Magie','mg','Hơn 300 phản ứng sinh học, thư giãn cơ.'],
+  phosphorus:['Phốt pho','mg','Cấu trúc xương & sản năng lượng.'],
+  zinc:['Kẽm','mg','Miễn dịch, chữa lành & vị giác.'],
+  vitA:['Vitamin A','mcg','Thị lực, da & hệ miễn dịch.'],
+  vitC:['Vitamin C','mg','Miễn dịch, tổng hợp collagen, chống oxi hóa.'],
+  vitD:['Vitamin D','mcg','Hấp thu canxi, miễn dịch & xương.'],
+  vitE:['Vitamin E','mg','Chất chống oxi hóa bảo vệ tế bào.'],
+  vitK:['Vitamin K','mcg','Đông máu & khỏe xương.'],
+  vitB1:['Vitamin B1','mg','Biến thức ăn thành năng lượng.'],
+  vitB2:['Vitamin B2','mg','Da, mắt & hệ thần kinh khỏe.'],
+  vitB3:['Vitamin B3','mg','Tế bào & da, hỗ trợ tiêu hóa.'],
+  vitB6:['Vitamin B6','mg','Chuyển hóa protein & tạo hồng cầu.'],
+  vitB9:['Folate (B9)','mcg','Tạo DNA – đặc biệt quan trọng với phụ nữ.'],
+  vitB12:['Vitamin B12','mcg','Thần kinh & tạo hồng cầu (có nhiều trong động vật).'],
+};
+
+/* =========================================================
+   TRẠNG THÁI ỨNG DỤNG
+   ========================================================= */
+const state = { step:1, gender:'male', age:25, height:170, weight:65, activity:1.55, goal:'keep', bmr:0, tdee:0, bmi:0, cart:[], filter:'Tất cả' };
+
+/* ---------------- điều hướng ---------------- */
+function goStep(n){
+  state.step = n;
+  for(let i=1;i<=3;i++){ document.getElementById('step'+i).classList.toggle('hidden', i!==n); }
+  window.scrollTo({top:0,behavior:'smooth'});
+  // dots
+  document.querySelectorAll('.step-dot').forEach(d=>{
+    const s=+d.dataset.dot; d.className='step-dot shrink-0 w-9 h-9 rounded-full font-bold flex items-center justify-center text-sm transition-all duration-300';
+    if(s< n){ d.classList.add('bg-green-600','text-white','shadow-md'); d.textContent='✓'; }
+    else if(s===n){ d.classList.add('bg-green-600','text-white','shadow-md'); d.textContent=s; }
+    else { d.classList.add('bg-green-100','text-green-600'); d.textContent=s; }
+  });
+  document.getElementById('bar1').style.width = n>=2?'100%':'0%';
+  document.getElementById('bar2').style.width = n>=3?'100%':'0%';
+  if(n===2){ document.getElementById('step2').classList.add('fade-step'); }
+  if(n===3){ document.getElementById('step3').classList.add('fade-step'); }
+}
+
+/* ---------------- BƯỚC 1 → 2 : tính nhu cầu ---------------- */
+function goStep2(){
+  const age=+document.getElementById('age').value;
+  const h=+document.getElementById('height').value;
+  const w=+document.getElementById('weight').value;
+  const err=document.getElementById('err1'); err.classList.add('hidden');
+  if(!age||!h||!w||h<80||h>230||w<20||w>250){ err.textContent='⚠️ Vui lòng nhập thông tin hợp lệ (chiều cao 80–230cm, cân nặng 20–250kg).'; err.classList.remove('hidden'); return; }
+  state.gender=document.querySelector('input[name=gender]:checked').value;
+  state.age=age; state.height=h; state.weight=w;
+  state.activity=+document.getElementById('activity').value;
+  state.goal=document.querySelector('input[name=goal]:checked').value;
+
+  // Mifflin-St Jeor
+  let bmr = 10*w + 6.25*h - 5*age;
+  bmr += state.gender==='male'?5:-161;
+  state.bmr=Math.round(bmr);
+  let tdee = bmr*state.activity;
+  if(state.goal==='lose') tdee*=0.80;     // thiếu hụt ~20%
+  if(state.goal==='gain') tdee*=1.12;     // thặng dư ~12%
+  state.tdee=Math.round(tdee);
+  state.bmi = +(w/Math.pow(h/100,2)).toFixed(1);
+
+  renderNeeds();
+  buildFilters();
+  renderFoods();
+  renderCart();
+  goStep(2);
+}
+
+/* bảng nhu cầu cá nhân */
+function bmiInfo(b){
+  if(b<18.5) return ['Thiếu cân','#0ea5e9','Tăng cường dinh dưỡng, ưu tiên đạm & tinh bột chất lượng.'];
+  if(b<25) return ['Khỏe mạnh','#16a34a','Vóc dáng lý tưởng! Duy trì chế độ ăn cân bằng.'];
+  if(b<30) return ['Thừa cân','#f59e0b','Nên giảm tinh bột tinh chế & tăng rau, vận động thêm.'];
+  return ['Béo phì','#ef4444','Nên tham khảo chuyên gia, cắt giảm calo & tập luyện đều.'];
+}
+function renderNeeds(){
+  const dv=buildDV(state); const [bc,col,advice]=bmiInfo(state.bmi);
+  const goalTxt={lose:'Giảm cân (−20% năng lượng)',keep:'Giữ cân',gain:'Tăng cơ (+12% năng lượng)'}[state.goal];
+  document.getElementById('needs').innerHTML=`
+  <div class="bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-green-200/40 border border-green-100">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
+      <h2 class="text-xl font-extrabold mr-auto">📊 Nhu cầu dinh dưỡng cá nhân của bạn</h2>
+      <span class="text-xs font-semibold px-3 py-1 rounded-full text-white" style="background:${col}">BMI ${state.bmi} · ${bc}</span>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="rounded-2xl bg-gradient-to-br from-green-500 to-lime-500 p-5 text-white">
+        <div class="text-xs font-semibold opacity-90">🔥 Calories cần / ngày (TDEE)</div>
+        <div class="text-3xl font-extrabold mt-1">${state.tdee.toLocaleString('vi-VN')}</div>
+        <div class="text-xs opacity-90 mt-1">kcal · mục tiêu: ${goalTxt}</div>
+      </div>
+      <div class="rounded-2xl bg-green-50 p-5 border border-green-100">
+        <div class="text-xs font-semibold text-green-700">⚡ Tỷ lệ trao đổi chất (BMR)</div>
+        <div class="text-3xl font-extrabold mt-1 text-green-700">${state.bmr.toLocaleString('vi-VN')}</div>
+        <div class="text-xs text-gray-500 mt-1">kcal lúc nghỉ ngơi</div>
+      </div>
+      <div class="rounded-2xl bg-green-50 p-5 border border-green-100">
+        <div class="text-xs font-semibold text-green-700">💧 Nước khuyến nghị</div>
+        <div class="text-3xl font-extrabold mt-1 text-green-700">${(state.weight*0.033).toFixed(1)}</div>
+        <div class="text-xs text-gray-500 mt-1">lít nước mỗi ngày</div>
+      </div>
+      <div class="rounded-2xl bg-green-50 p-5 border border-green-100">
+        <div class="text-xs font-semibold text-green-700">⚖️ Chỉ số BMI</div>
+        <div class="text-3xl font-extrabold mt-1" style="color:${col}">${state.bmi}</div>
+        <div class="text-xs text-gray-500 mt-1">${bc}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 sm:gap-4 mt-3">
+      <div class="rounded-2xl bg-red-50 p-4 text-center border border-red-100"><div class="text-2xl">🥩</div><div class="text-lg font-extrabold text-red-600">${dv.protein}g</div><div class="text-xs text-gray-500">Protein/ngày</div></div>
+      <div class="rounded-2xl bg-amber-50 p-4 text-center border border-amber-100"><div class="text-2xl">🍚</div><div class="text-lg font-extrabold text-amber-600">${dv.carbs}g</div><div class="text-xs text-gray-500">Tinh bột/ngày</div></div>
+      <div class="rounded-2xl bg-yellow-50 p-4 text-center border border-yellow-100"><div class="text-2xl">🥑</div><div class="text-lg font-extrabold text-yellow-600">${dv.fat}g</div><div class="text-xs text-gray-500">Chất béo/ngày</div></div>
+    </div>
+    <p class="mt-4 text-sm text-gray-600 bg-green-50/60 rounded-xl p-3 border border-green-100">💡 <b>Lời khuyên từ MinhDang:</b> ${advice}</p>
+  </div>`;
+}
+
+/* ---------------- BƯỚC 2 : chọn thực phẩm ---------------- */
+function buildFilters(){
+  const f=document.getElementById('filters');
+  const opts=['Tất cả',...CATS];
+  f.innerHTML=opts.map(c=>`<button onclick="setFilter('${c}')" class="filter-chip px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 ${state.filter===c?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-green-100'} transition">${CAT_EMOJI[c]||'🍽️'} ${c}</button>`).join('');
+}
+function setFilter(c){ state.filter=c; buildFilters(); renderFoods(); }
+
+function renderFoods(){
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  const grid=document.getElementById('foodGrid');
+  const list=FOODS.filter(f=>(state.filter==='Tất cả'||f.cat===state.filter)&&(!q||f.name.toLowerCase().includes(q)||f.cat.toLowerCase().includes(q)));
+  if(!list.length){ grid.innerHTML=`<div class="col-span-full text-center py-10 text-gray-400">😕 Không tìm thấy thực phẩm phù hợp.</div>`; return; }
+  grid.innerHTML=list.map(f=>`
+    <button onclick="addToCart('${f.id}')" class="chip text-left bg-white rounded-2xl p-3.5 border-2 border-green-50 hover:border-green-300">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">${f.emoji}</span>
+        <div class="min-w-0"><div class="font-bold text-sm truncate">${f.name}</div><div class="text-[10px] text-gray-400">${f.cat}</div></div>
+      </div>
+      <div class="mt-2 flex items-center justify-between">
+        <span class="text-xs font-bold text-green-700">${f.calories} kcal</span>
+        <span class="text-[10px] text-gray-400">/100g</span>
+      </div>
+      <div class="mt-1.5 flex gap-1 text-[9px] text-gray-500"><span class="px-1.5 py-0.5 bg-gray-100 rounded">P${f.protein}</span><span class="px-1.5 py-0.5 bg-gray-100 rounded">C${f.carbs}</span><span class="px-1.5 py-0.5 bg-gray-100 rounded">F${f.fat}</span></div>
+    </button>`).join('');
+}
+
+function addToCart(id){
+  const ex=state.cart.find(c=>c.id===id);
+  if(ex){ ex.grams+=100; } else { state.cart.push({id,grams:100}); }
+  renderCart();
+  const el=document.querySelector('#cart .cart-item-'+id); if(el){ el.classList.add('pop'); }
+}
+function updateGrams(id,v){
+  const g=Math.max(0,Math.min(5000,Math.round(+v||0)));
+  const it=state.cart.find(c=>c.id===id); if(it){ it.grams=g; }
+  renderCart(true);
+}
+function removeItem(id){ state.cart=state.cart.filter(c=>c.id!==id); renderCart(); }
+function clearCart(){ state.cart=[]; renderCart(); }
+
+function renderCart(keepFocus=false){
+  const wrap=document.getElementById('cart'); const cnt=document.getElementById('cartCount'); const dv=buildDV(state);
+  cnt.textContent=state.cart.length;
+  document.getElementById('analyzeBtn').disabled=state.cart.length===0;
+  if(!state.cart.length){ wrap.innerHTML=`<div class="text-center py-6 text-gray-400 text-sm bg-green-50/50 rounded-2xl border border-dashed border-green-100">Chưa có thực phẩm nào. Hãy chọn ở trên 👆 để bắt đầu phân tích.</div>`; return; }
+  let tot=0;
+  wrap.innerHTML=state.cart.map(c=>{
+    const f=FOODS.find(x=>x.id===c.id); const cal=f.calories/100*c.grams; tot+=cal;
+    return `<div class="cart-item-${c.id} flex flex-wrap items-center gap-3 bg-green-50/60 rounded-2xl p-3 border border-green-100">
+      <span class="text-2xl">${f.emoji}</span>
+      <div class="min-w-[110px] flex-1"><div class="font-bold text-sm">${f.name}</div><div class="text-xs text-gray-500">${Math.round(cal)} kcal · ${(f.protein/100*c.grams).toFixed(1)}g đạm</div></div>
+      <div class="flex items-center gap-1.5">
+        <input type="number" value="${c.grams}" min="0" max="5000" step="10" oninput="updateGrams('${c.id}',this.value)" class="w-20 px-2 py-2 text-center rounded-xl border-2 border-green-100 font-semibold ring-shadow outline-none">
+        <span class="text-xs text-gray-400 font-medium">g</span>
+      </div>
+      <button onclick="removeItem('${c.id}')" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 transition flex items-center justify-center">✕</button>
+    </div>`;
+  }).join('') + `<div class="flex items-center justify-between pt-2 px-1"><span class="text-sm font-semibold text-gray-500">Tổng calories danh sách:</span><span class="text-xl font-extrabold text-green-700">${Math.round(tot)} kcal <span class="text-xs font-medium text-gray-400">/ ${dv.calories} mục tiêu</span></span></div>`;
+}
+
+/* ---------------- liều lượng khuyến nghị / thực phẩm ---------------- */
+function recommendedGrams(f){
+  const caps={'Tinh bột':350,'Đạm':250,'Sữa':300,'Trái cây':400,'Rau củ':500,'Hạt/Dầu':35};
+  const shares={'Tinh bột':0.30,'Đạm':0.30,'Sữa':0.15,'Trái cây':0.12,'Rau củ':0.08,'Hạt/Dầu':0.08};
+  const calPerG=f.calories/100;
+  let g = calPerG>0 ? (state.tdee*shares[f.cat])/calPerG : caps[f.cat];
+  return Math.round(Math.min(caps[f.cat], Math.max(40,g)));
+}
+
+/* cảnh báo quá liều (tác hại) */
+const HARM={
+  calories:['⚠️ Vượt nhu cầu năng lượng','Dư thừa calo → tích mỡ, tăng cân, béo phì, kháng insulin, tăng nguy cơ tiểu đường & bệnh tim.'],
+  sugar:['🍬 Đường quá nhiều','Gây tăng cân, sâu răng, gan nhiễm mỡ, kháng insulin và tiểu đường tuýp 2. Nên <50g đường tự do/ngày.'],
+  sodium:['🧂 Natri quá nhiều','Tăng huyết áp, giữ nước, làm nặng tim & thận, tăng nguy cơ đột quỵ.'],
+  satFat:['🧈 Chất béo bão hòa quá nhiều','Tăng LDL (cholesterol xấu), xơ vữa động mạch, bệnh tim mạch.'],
+  cholesterol:['🥚 Cholesterol cao','Đóng góp tăng cholesterol máu, nhất khi kèm chất béo bão hòa cao.'],
+  fiber:['🌀 Chất xơ quá nhiều (hiếm)','Khi >60g/ngày có thể gây đầy hơi, chướng bụng và giảm hấp thu khoáng chất.'],
+};
+function buildWarnings(tot){
+  const dv=buildDV(state); const w=[];
+  if(tot.calories>dv.calories) w.push(HARM.calories);
+  if(tot.sugar>dv.sugar) w.push(HARM.sugar);
+  if(tot.sodium>dv.sodium) w.push(HARM.sodium);
+  if(tot.satFat>dv.satFat) w.push(HARM.satFat);
+  if(tot.cholesterol>dv.cholesterol) w.push(HARM.cholesterol);
+  if(tot.fiber>60) w.push(HARM.fiber);
+  // cảnh báo theo từng thực phẩm đặc trưng
+  state.cart.forEach(c=>{ const f=FOODS.find(x=>x.id===c.id);
+    if(f.calories>=400 && c.grams>120) w.push(['🔥 "'+f.name+'" rất giàu năng lượng','Với '+c.grams+'g bạn nạp '+Math.round(f.calories/100*c.grams)+' kcal – khá cao. Ăn nhiều dễ vượt ngưỡng calo, gây tăng cân. Nên kiểm soát khẩu phần.']);
+    if(f.sodium>=500 && c.grams>80) w.push(['🧂 "'+f.name+'" nhiều natri','Loại này nhiều muối, ăn dư làm tăng huyết áp. Kết hợp thêm rau tươi & uống đủ nước.']);
+    if(f.satFat>=18 && c.grams>50) w.push(['🧈 "'+f.name+'" nhiều chất béo bão hòa','Nên dùng lượng nhỏ, kết hợp chất béo tốt từ cá, dầu thực vật.']);
+    if(f.cholesterol>=180 && c.grams>120) w.push(['🥚 "'+f.name+'" nhiều cholesterol','Người có mỡ máu cao nên hạn chế, tham khảo ý kiến bác sĩ.']);
+  });
+  return w;
+}
+
+/* ---------------- BƯỚC 3 : phân tích ---------------- */
+function analyze(){
+  if(state.cart.length===0) return;
+  const keys=Object.keys(NUTRIENT_LABEL);
+  const tot={}; keys.forEach(k=>tot[k]=0);
+  state.cart.forEach(c=>{ const f=FOODS.find(x=>x.id===c.id); keys.forEach(k=>tot[k]+= (f[k]/100*c.grams)); });
+  const dv=buildDV(state);
+  const warnings=buildWarnings(tot);
+
+  const n=v=>Math.round(v*10)/10;
+  const bar=(k)=>{ const pct=Math.min(150, tot[k]/dv[k]*100); const isLimit=LIMIT.has(k);
+    let col; if(isLimit){ col = pct>100?'#ef4444':pct>60?'#f59e0b':'#22c55e'; } else { col = pct>=100?'#16a34a':pct>=50?'#84cc16':'#f59e0b'; }
+    return `<div class="h-2 rounded-full bg-gray-100 overflow-hidden"><div class="h-full bar-fill rounded-full" style="width:${Math.min(100,pct)}%;background:${col}"></div></div>`;
+  };
+  const fmt=(k,v)=> NUTRIENT_LABEL[k][1]==='mg'||NUTRIENT_LABEL[k][1]==='mcg'?Math.round(v):(NUTRIENT_LABEL[k][1]==='kcal'?Math.round(v):n(v));
+
+  const groupsHtml=NUTRIENT_GROUPS.map(g=>`
+    <div class="mb-6">
+      <h3 class="font-extrabold text-lg mb-3 flex items-center gap-2">${g.icon} ${g.title}</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        ${g.keys.map(k=>{ const [lab,unit]=NUTRIENT_LABEL[k]; const pct=Math.round(tot[k]/dv[k]*100); const isLimit=LIMIT.has(k);
+          return `<div class="bg-white rounded-2xl p-4 border border-green-50 shadow-sm">
+            <div class="flex items-center justify-between mb-1"><span class="font-semibold text-sm text-gray-700">${lab}</span>
+              <span class="text-sm font-extrabold ${isLimit&&pct>100?'text-red-500':pct>=100?'text-green-600':'text-gray-700'}">${fmt(k,tot[k])}<span class="text-xs font-medium text-gray-400"> ${unit}</span></span></div>
+            ${bar(k)}
+            <div class="flex items-center justify-between mt-1.5"><span class="text-[11px] text-gray-400">${NUTRIENT_LABEL[k][2]}</span>
+              <span class="text-[11px] font-bold ${isLimit&&pct>100?'text-red-500':'text-green-600'}">${pct}% DV</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  // tổng quan macro
+  const macroPct = (tot.calories? [
+    {n:'Protein', v:tot.protein*4, c:'#ef4444', e:'🥩'},
+    {n:'Tinh bột', v:tot.carbs*4, c:'#f59e0b', e:'🍚'},
+    {n:'Chất béo', v:tot.fat*9, c:'#eab308', e:'🥑'},
+  ]:[{n:'Protein',v:0,c:'#ef4444',e:'🥩'},{n:'Tinh bột',v:0,c:'#f59e0b',e:'🍚'},{n:'Chất béo',v:0,c:'#eab308',e:'🥑'}]);
+  const sumCal=macroPct.reduce((a,b)=>a+b.v,0)||1;
+
+  // lời khuyên liều dùng
+  const portionAdvice=state.cart.map(c=>{ const f=FOODS.find(x=>x.id===c.id); const rg=recommendedGrams(f);
+    const rc=Math.round(f.calories/100*rg); const rp=(f.protein/100*rg).toFixed(0);
+    let note='Khẩu phần hợp lý cho bạn.';
+    if(c.grams>rg*1.5) note='⚠️ Bạn đang ăn nhiều hơn khuyến nghị — cân nhắc giảm.';
+    else if(c.grams<rg*0.5) note='✅ Lượng an toàn, có thể thêm một chút.';
+    else note='✅ Khẩu phần rất phù hợp!';
+    return `<div class="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-green-50">
+      <span class="text-2xl">${f.emoji}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2"><span class="font-bold text-sm">${f.name}</span><span class="text-xs font-bold text-green-700">${rg}g/ngày</span></div>
+        <div class="text-xs text-gray-500">≈ ${rc} kcal (${Math.round(rc/dv.calories*100)}% nhu cầu) · ${rp}g đạm</div>
+        <div class="text-xs mt-1 ${note.startsWith('✅')?'text-green-600':'text-amber-600'} font-medium">${note}</div>
+      </div></div>`;
+  }).join('');
+
+  // lời khuyên tổng
+  const calPct=Math.round(tot.calories/dv.calories*100);
+  let overall;
+  if(calPct>110) overall=`Danh sách này nạp <b>${calPct}%</b> năng lượng cả ngày — khá cao cho một bữa. Nên giảm khẩu phần hoặc chia nhỏ các bữa khác.`;
+  else if(calPct>=25) overall=`Danh sách này chiếm <b>${calPct}%</b> năng lượng một ngày — một khẩu phần hợp lý cho 1 bữa ăn.`;
+  else overall=`Danh sách này chỉ <b>${calPct}%</b> năng lượng/ngày — khá nhẹ, bạn có thể kết hợp thêm thực phẩm khác.`;
+
+  document.getElementById('results').innerHTML=`
+    <!-- tổng quan -->
+    <div class="bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-green-200/40 border border-green-100 mb-6">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <span class="inline-block text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">BƯỚC 3 / 3 · KẾT QUẢ</span>
+        <h2 class="text-2xl font-extrabold mr-auto">📊 Bảng phân tích dinh dưỡng</h2>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-4 items-stretch">
+        <div class="lg:col-span-1 rounded-2xl bg-gradient-to-br from-green-500 to-lime-500 p-6 text-white flex flex-col justify-center">
+          <div class="text-xs font-semibold opacity-90">Tổng calories danh sách đã chọn</div>
+          <div class="text-5xl font-extrabold my-1">${Math.round(tot.calories).toLocaleString('vi-VN')}</div>
+          <div class="text-sm opacity-90">${calPct}% so với mục tiêu ${dv.calories} kcal/ngày</div>
+        </div>
+        <div class="lg:col-span-2 rounded-2xl bg-green-50 p-5 border border-green-100">
+          <div class="text-sm font-bold text-gray-600 mb-3">Tỷ lệ năng lượng theo nhóm chất</div>
+          <div class="flex h-6 rounded-full overflow-hidden mb-3">
+            ${macroPct.map(m=>`<div style="width:${m.v/sumCal*100}%;background:${m.c}" title="${m.n}: ${Math.round(m.v)}kcal"></div>`).join('')}
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center text-sm">
+            ${macroPct.map(m=>`<div><span class="inline-block w-3 h-3 rounded-full align-middle mr-1" style="background:${m.c}"></span><b>${Math.round(m.v/sumCal*100)}%</b><div class="text-xs text-gray-400">${m.e} ${m.n}</div></div>`).join('')}
+          </div>
+          <p class="text-xs text-gray-500 mt-3">💡 Tỷ lệ lý tưởng (kcal): Protein 25% · Tinh bột 45% · Chất béo 30%.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- chi tiết chất -->
+    <div class="bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-green-200/40 border border-green-100 mb-6">
+      <h3 class="font-extrabold text-lg mb-1">🧬 Thành phần dinh dưỡng chi tiết</h3>
+      <p class="text-xs text-gray-500 mb-5">Hiển thị <b>đầy đủ</b> năng lượng, chất đa lượng, khoáng chất & vitamin – kèm % nhu cầu mỗi ngày (DV).</p>
+      ${groupsHtml}
+    </div>
+
+    <!-- lời khuyên liều dùng -->
+    <div class="bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-green-200/40 border border-green-100 mb-6">
+      <h3 class="font-extrabold text-lg mb-1">🎯 Lời khuyên liều lượng nên dùng</h3>
+      <p class="text-xs text-gray-500 mb-4">Khẩu phần tham khảo được tính dựa trên nhu cầu ${dv.calories} kcal/ngày và nhóm thực phẩm.</p>
+      <div class="space-y-2.5">${portionAdvice}</div>
+      <div class="mt-4 text-sm bg-green-50 rounded-xl p-3 border border-green-100 text-gray-700">📋 <b>Tổng quan:</b> ${overall}</div>
+    </div>
+
+    <!-- cảnh báo tác hại -->
+    <div class="bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl shadow-red-100/40 border border-red-100 mb-6">
+      <h3 class="font-extrabold text-lg mb-1">🚨 Tác hại khi dùng quá nhiều</h3>
+      <p class="text-xs text-gray-500 mb-4">${warnings.length?'Dựa trên danh sách của bạn, hãy lưu ý những điểm sau:':'✅ Tuyệt vời! Danh sách của bạn nằm trong giới hạn an toàn, không có cảnh báo đáng kể.'}</p>
+      <div class="space-y-2.5">
+        ${warnings.length? warnings.map(w=>`<div class="flex items-start gap-3 bg-red-50 rounded-2xl p-3.5 border border-red-100"><span class="text-xl">${w[0].split(' ')[0]}</span><div><div class="font-bold text-sm text-red-600">${w[0]}</div><div class="text-xs text-gray-600 mt-0.5">${w[1]}</div></div></div>`).join('') : `<div class="bg-green-50 rounded-2xl p-4 border border-green-100 text-sm text-green-700 text-center">💚 Mọi chỉ số đều ở mức an toàn. Tiếp tục phát huy nhé!</div>`}
+      </div>
+    </div>
+
+    <!-- momo tips -->
+    <div class="bg-gradient-to-br from-green-500 to-lime-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-green-300/40">
+      <h3 class="font-extrabold text-lg mb-3">🌱 Lời khuyên healthy từ MinhDang</h3>
+      <div class="grid sm:grid-cols-2 gap-3 text-sm">
+        <div class="bg-white/15 rounded-xl p-3">🥗 <b>Đa dạng thực phẩm:</b> kết hợp ít nhất 4 nhóm để đủ vitamin & khoáng chất.</div>
+        <div class="bg-white/15 rounded-xl p-3">💧 <b>Uống đủ nước:</b> ${(state.weight*0.033).toFixed(1)} lít/ngày, chia đều các cốc.</div>
+        <div class="bg-white/15 rounded-xl p-3">⏰ <b>Ăn chậm, nhai kỹ:</b> giúp no lâu và hấp thu tốt hơn.</div>
+        <div class="bg-white/15 rounded-xl p-3">🏃 <b>Vận động đều:</b> 30–60 phút mỗi ngày để tối ưu trao đổi chất.</div>
+      </div>
+    </div>`;
+
+  goStep(3);
+}
+
+/* khởi tạo */
+renderFoods(); buildFilters();
+</script>
+</body>
+</html>
